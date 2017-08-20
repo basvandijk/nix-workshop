@@ -3,10 +3,8 @@ Advanced Haskell Development with Nix
 
 A workshop at [Haskell eXchange 2017] hosted by:
 
-* [Peter Simons](https://github.com/peti)
-* [Bas van Dijk](https://github.com/basvandijk)
-
-[Haskell eXchange 2017]: (https://skillsmatter.com/conferences/8522-haskell-exchange-2017)
+* [Peter Simons]
+* [Bas van Dijk]
 
 This repository contains the workshop materials.
 
@@ -40,28 +38,29 @@ Given a laptop that has the Nix package manager installed as described here, you
 will take a practical look at the Haskell infrastructure it provides. That means
 we will ...
 
-install a selection of Haskell compilers and
+* install a selection of Haskell compilers and
 
-compile some Haskell packages with them. Then, you'll
+* compile some Haskell packages with them. Then, you'll
 
-let Nix do those builds, or rather we'll use Nix to
+* let Nix do those builds, or rather we'll use Nix to
 
-download pre-built binaries for those packages from the central cache rather
-than compiling them locally.
+* download pre-built binaries for those packages from the central cache rather
+  than compiling them locally.
 
-Equipped with that knowledge, you'll set up development environments that
+* Equipped with that knowledge, you'll set up development environments that
 
-integrate Nix with cabal-install and stack,
+* integrate Nix with cabal-install and stack,
 
-integrate system level libraries (libz, OpenSSL, etc.), and
+* integrate system level libraries (libz, OpenSSL, etc.), and
 
-can be shared with other Nix users so that they can create the same environment.
+* can be shared with other Nix users so that they can create the same
+  environment.
 
-Last but not least, you'll
+* Last but not least, you'll add our own private packages to Nix so that they
+  can be used as dependencies and
 
-add our own private packages to Nix so that they can be used as dependencies and
-
-extend and customize the Nix package set to make it fit our needs if it doesn't.
+* extend and customize the Nix package set to make it fit our needs if it
+  doesn't.
 
 In the second part of the workshop, you, along with the workshop hosts, will
 pretend you are all in a startup together and are building a product (a GHCJS
@@ -82,3 +81,8 @@ interactive workshop!
 Participants should have a reasonable understanding of Haskell and some
 knowledge of how to use cabal-install and/or stack. Experience with Nix is not
 required, however.
+
+
+[Peter Simons]: https://github.com/peti
+[Bas van Dijk]: https://github.com/basvandijk
+[Haskell eXchange 2017]: https://skillsmatter.com/conferences/8522-haskell-exchange-2017

@@ -13,13 +13,13 @@ pkgs : {
             (name: builtins.pathExists (dir + "/${name}/${name}.cabal"))
             (builtins.attrNames (builtins.readDir dir)))
           (name : let pkgDir = dir + "/${name}";
-                      drv' = self.callPackage (
+                      drv'' = self.callPackage (
                         super.haskellSrc2nix {
                           inherit name;
                           src = pkgDir + "/${name}.cabal";
                         }
                       ) {};
-                      drv = pkgs.haskell.lib.overrideCabal drv' (_drv : {
+                      drv' = pkgs.haskell.lib.overrideCabal drv'' (_drv : {
                         src = pkgs.lib.sourceByRegex pkgDir [
                                 "^${name}.cabal$"
                                 "^LICENSE$"
@@ -29,6 +29,10 @@ pkgs : {
                                 "^include$" "^include/.*"
                               ];
                       });
+                      overridePath = pkgDir + "/override.nix";
+                      drv = if builtins.pathExists overridePath
+                            then import overridePath pkgs drv'
+                            else drv';
                   in drv
           );
 

@@ -15,7 +15,11 @@ executable todo-frontend
                      , containers
                      , miso
                      , aeson
+                     , ghcjs-base
                      , lens
                      , mtl
+                     , text
                      , transformers
+                     , todo-api-client
+                     , todo-api
   default-language:    Haskell2010

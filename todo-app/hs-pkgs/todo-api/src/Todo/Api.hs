@@ -1,7 +1,10 @@
-{-# LANGUAGE DeriveGeneric   #-}
-{-# LANGUAGE TypeOperators   #-}
-{-# LANGUAGE DataKinds       #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Todo.Api where
 
@@ -14,24 +17,26 @@ import Data.Char (isUpper, toLower)
 import Data.Aeson (ToJSON(..), FromJSON(..), genericToJSON, genericParseJSON)
 import Data.Aeson.Types (Options, defaultOptions, fieldLabelModifier)
 import GHC.Generics (Generic)
+import Data.Profunctor.Product.TH ( makeAdaptorAndInstance )
 
 --------------------------------------------------------------------------------
 -- Endpoints
 --------------------------------------------------------------------------------
 
-type TodoApi = "entries" :>
-  (    CreateEntry
-  :<|> ReadEntries
-  :<|> UpdateEntry
-  :<|> DeleteEntry
-  )
+type TodoApi =
+    "entries" :> (    CreateEntry
+                 :<|> ReadEntries
+                 :<|> UpdateEntry
+                 :<|> DeleteEntry
+                 )
+  :<|> FrontendApi
 
 type CreateEntry =
      ReqBody '[JSON] EntryInfo
-  :> Post '[JSON] AddEntryResult
+  :> Post '[JSON] Entry
 
 type ReadEntries =
-     Get '[JSON] (Map Int EntryInfo)
+     Get '[JSON] [Entry]
 
 type UpdateEntry =
      CaptureEntryId
@@ -42,33 +47,51 @@ type DeleteEntry =
      CaptureEntryId
   :> Delete '[JSON] NoContent
 
-type CaptureEntryId = Capture "eid" Int
+type CaptureEntryId = Capture "eid" EntryId
+
+type FrontendApi =
+       GetStatic
+  :<|> GetHashed
+  :<|> GetIndex
+
+type GetStatic = "static" :> Raw
+type GetHashed = "hashed" :> Raw
+type GetIndex  = Raw
 
 
 --------------------------------------------------------------------------------
 -- Types
 --------------------------------------------------------------------------------
 
-data EntryInfo =
+type EntryId = Int
+
+type Entry = Entry' EntryId EntryInfo
+
+data Entry' id entry =
+     Entry
+     { _entryId    :: !id
+     , _entryEntry :: !entry
+     } deriving (Show, Generic, Eq)
+
+type EntryInfo = EntryInfo' T.Text Bool
+
+data EntryInfo' description completed =
      EntryInfo
-     { _entryInfDescription :: !T.Text
-     , _entryInfCompleted   :: !Bool
-     } deriving (Show, Generic)
+     { _entryInfDescription :: !description
+     , _entryInfCompleted   :: !completed
+     } deriving (Show, Generic, Eq)
+
+instance ToJSON Entry where
+    toJSON = genericToJSON $ optionsDelPrefix "_entry"
+
+instance FromJSON Entry where
+    parseJSON = genericParseJSON $ optionsDelPrefix "_entry"
 
 instance ToJSON EntryInfo where
     toJSON = genericToJSON $ optionsDelPrefix "_entryInf"
 
 instance FromJSON EntryInfo where
     parseJSON = genericParseJSON $ optionsDelPrefix "_entryInf"
-
-data AddEntryResult = AddEntryResult { _addEntryResultId :: !Int }
-     deriving (Show, Generic)
-
-instance ToJSON AddEntryResult where
-    toJSON = genericToJSON $ optionsDelPrefix "_addEntryResult"
-
-instance FromJSON AddEntryResult where
-    parseJSON = genericParseJSON $ optionsDelPrefix "_addEntryResult"
 
 
 --------------------------------------------------------------------------------
@@ -95,6 +118,8 @@ delPrefix prefix = \fieldName ->
 quotes :: String -> String
 quotes s = "\"" ++ s ++ "\""
 
+makeLenses ''Entry'
+makeLenses ''EntryInfo'
 
-makeLenses ''EntryInfo
-makeLenses ''AddEntryResult
+makeAdaptorAndInstance "pEntry"     ''Entry'
+makeAdaptorAndInstance "pEntryInfo" ''EntryInfo'

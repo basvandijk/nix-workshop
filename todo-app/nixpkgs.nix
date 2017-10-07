@@ -11,8 +11,8 @@ let pkgs = import <nixpkgs> {};
     nixpkgs = pkgs.fetchFromGitHub {
        owner   = "NixOS";
        repo    = "nixpkgs";
-       rev     = "694529e45d92fe3ca28c7aa78f57ee4b11d4bb73";
-       sha256  = "07h6jl0mqy5g5xq5wnicd1add3n2cri8601aw957y46mfbm6j3n5";
+       rev     = "3c0ea4fa4b931501212e1cf2708ea67cc3dbbcdf";
+       sha256  = "11iwvnbwns4gdfakjr8qxzzcbzb718chlihxrm2fypg91k1kh7ws";
      };
 
     patches = [

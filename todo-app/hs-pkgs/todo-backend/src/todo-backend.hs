@@ -10,25 +10,30 @@ import qualified Data.Configurator.Types as C
 import Data.Monoid ((<>))
 import Control.Applicative (many)
 import qualified Data.Text as T
-import qualified Todo.Backend.Database as Db
+import qualified Todo.Backend.Db as Db
+import qualified Todo.Backend.IndexTemplater as IndexTemplater
 import qualified Todo.Backend.WebServer as WebServer
 
 main :: IO ()
-main = do
-    cfg <- do
+main = runManaged $ do
+    cfg <- liftIO $ do
       configFiles <- O.execParser opts
       C.load $ map C.Required configFiles
 
     let subCfg :: T.Text -> C.Config
         subCfg sectionName = C.subconfig sectionName cfg
 
-    db <- do
-      c <- Db.parseConfig (subCfg "database")
+    db <- liftIO $ do
+      c <- Db.parseConfig (subCfg "db")
       Db.new c
 
-    do
+    frontendIndexTemplater <- do
+      c <- liftIO $ IndexTemplater.parseConfig $ subCfg "frontendIndexTemplater"
+      IndexTemplater.with c
+
+    liftIO $ do
       c <- WebServer.parseConfig (subCfg "web-server")
-      WebServer.serve c
+      WebServer.serve c db frontendIndexTemplater
   where
     opts :: O.ParserInfo [FilePath]
     opts = O.info (O.helper <*> options)

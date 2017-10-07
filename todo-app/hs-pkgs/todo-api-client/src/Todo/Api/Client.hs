@@ -22,9 +22,10 @@ data TodoApiClient m
      }
 
 todoApiClient :: forall m . HasClient m TodoApi => TodoApiClient m
-todoApiClient = TodoApiClient { .. }
+todoApiClient = TodoApiClient{..}
   where
-    createEntry
+    (      createEntry
       :<|> readEntries
       :<|> updateEntry
-      :<|> deleteEntry = Proxy @TodoApi `clientIn` Proxy @m
+      :<|> deleteEntry
+     ):<|> _frontendApi = Proxy @TodoApi `clientIn` Proxy @m

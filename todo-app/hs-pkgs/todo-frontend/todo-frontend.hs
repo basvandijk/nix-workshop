@@ -26,39 +26,47 @@ import qualified Data.Map     as M
 import           Data.Monoid
 import           GHC.Generics
 import           Miso
-import           Miso.String  (MisoString)
+import           Miso.String  (MisoString, toMisoString)
 import qualified Miso.String  as S
-
-default (MisoString)
+import           Todo.Api
+import qualified Data.Text as T
+import           Data.JSString.Text (textFromJSString)
 
 data Model = Model
-  { _entries    :: ![Entry]
-  , _field      :: !MisoString
+  { _entries    :: ![EntryRecord]
+  , _field      :: !T.Text
   , _uid        :: !Int
   , _visibility :: !Visibility
   } deriving (Show, Generic, Eq)
 
-data Entry = Entry
-  { _description :: !MisoString
-  , _completed   :: !Bool
-  , _editing     :: !Bool
-  , _eid         :: !Int
-  , _focussed    :: !Bool
+data EntryRecord = EntryRecord
+  { _entryRecEntry    :: !Entry
+  , _entryRecEditing  :: !Bool
+  , _entryRecFocussed :: !Bool
   } deriving (Show, Generic, Eq)
 
 data Visibility = ViewAll | ViewActive | ViewCompleted
                   deriving (Show, Generic, Eq)
 
 makeLenses ''Model
-makeLenses ''Entry
+makeLenses ''EntryRecord
 
-instance ToJSON Entry
+instance ToJSON EntryRecord
 instance ToJSON Model
 instance ToJSON Visibility
 
-instance FromJSON Entry
+instance FromJSON EntryRecord
 instance FromJSON Model
 instance FromJSON Visibility
+
+eid :: Lens' EntryRecord EntryId
+eid = entryRecEntry . entryId
+
+description :: Lens' EntryRecord T.Text
+description = entryRecEntry . entryEntry . entryInfDescription
+
+completed :: Lens' EntryRecord Bool
+completed = entryRecEntry . entryEntry . entryInfCompleted
 
 emptyModel :: Model
 emptyModel = Model
@@ -68,20 +76,24 @@ emptyModel = Model
   , _uid        = 0
   }
 
-newEntry :: MisoString -> Int -> Entry
-newEntry desc eid = Entry
-  { _description = desc
-  , _completed   = False
-  , _editing     = False
-  , _eid         = eid
-  , _focussed    = False
+newEntry :: T.Text -> Int -> EntryRecord
+newEntry desc id' = EntryRecord
+  { _entryRecEntry = Entry
+      { _entryId = id'
+      , _entryEntry = EntryInfo
+          { _entryInfDescription = desc
+          , _entryInfCompleted   = False
+          }
+      }
+  , _entryRecEditing  = False
+  , _entryRecFocussed = False
   }
 
 data Action
   = NoOp
-  | UpdateField !MisoString
+  | UpdateField !T.Text
   | EditingEntry !Int !Bool
-  | UpdateEntry !Int !MisoString
+  | UpdateEntry !Int !T.Text
   | Add
   | Delete !Int
   | DeleteComplete
@@ -110,21 +122,21 @@ updateModel = \case
       uid   .= oldUid + 1
       field .= mempty
 
-      unless (S.null oldField) $
+      unless (T.null oldField) $
         entries %= (<> [newEntry oldField oldUid])
 
     UpdateField str -> field .= str
 
     EditingEntry id' isEditing -> do
       entries %= filterMap ((== id') . L.view eid)
-                   ( (editing  .~ isEditing)
-                   . (focussed .~ isEditing)
+                   ( (entryRecEditing  .~ isEditing)
+                   . (entryRecFocussed .~ isEditing)
                    )
       scheduleIO $ NoOp <$ focus ("todo-" <> S.pack (show id'))
 
-    UpdateEntry id' task ->
+    UpdateEntry id' desc ->
       entries %= filterMap ((== id') . L.view eid)
-                   (description .~ task)
+                   (description .~ desc)
 
     Delete id' ->
       entries %= filter ((/= id') . L.view eid)
@@ -167,7 +179,7 @@ viewModel m =
     , infoFooter
     ]
 
-viewEntries :: Visibility -> [ Entry ] -> View Action
+viewEntries :: Visibility -> [ EntryRecord ] -> View Action
 viewEntries visibility entries =
   section_
     [ class_ "main"
@@ -190,49 +202,49 @@ viewEntries visibility entries =
   where
     cssVisibility = bool "visible" "hidden" (null entries)
     allCompleted = all (L.view completed) entries
-    isVisible entry =
+    isVisible entryRec =
       case visibility of
-        ViewCompleted ->       entry ^. completed
-        ViewActive    -> not $ entry ^. completed
+        ViewCompleted ->       entryRec ^. completed
+        ViewActive    -> not $ entryRec ^. completed
         _ -> True
 
-viewKeyedEntry :: Entry -> View Action
+viewKeyedEntry :: EntryRecord -> View Action
 viewKeyedEntry = viewEntry
 
-viewEntry :: Entry -> View Action
-viewEntry entry = liKeyed_ (toKey $ entry ^. eid)
+viewEntry :: EntryRecord -> View Action
+viewEntry entryRec = liKeyed_ (toKey $ entryRec ^. eid)
     [ class_ $ S.intercalate " " $
-       [ "completed" | entry ^. completed ] <> [ "editing" | entry ^. editing ]
+       [ "completed" | entryRec ^. completed ] <> [ "editing" | entryRec ^. entryRecEditing ]
     ]
     [ div_
         [ class_ "view" ]
         [ input_
             [ class_ "toggle"
             , type_ "checkbox"
-            , checked_ $ entry ^. completed
-            , onClick $ Check (entry ^. eid) (not $ entry ^. completed)
+            , checked_ $ entryRec ^. completed
+            , onClick $ Check (entryRec ^. eid) (not $ entryRec ^. completed)
             ] []
         , label_
-            [ onDoubleClick $ EditingEntry (entry ^. eid) True ]
-            [ text $ entry ^. description ]
+            [ onDoubleClick $ EditingEntry (entryRec ^. eid) True ]
+            [ text $ toMisoString $ entryRec ^. description ]
         , button_
             [ class_ "destroy"
-            , onClick $ Delete (entry ^. eid)
+            , onClick $ Delete (entryRec ^. eid)
             ] []
         ]
     , input_
         [ class_ "edit"
-        , value_ (entry ^. description)
+        , value_ (toMisoString $ entryRec ^. description)
         , name_ "title"
-        , id_ $ "todo-" <> S.pack (show $ entry ^. eid)
-        , onInput $ UpdateEntry (entry ^. eid)
-        , onBlur $ EditingEntry (entry ^. eid) False
-        , onEnter $ EditingEntry (entry ^. eid) False
+        , id_ $ "todo-" <> S.pack (show $ entryRec ^. eid)
+        , onInput $ UpdateEntry (entryRec ^. eid) . textFromJSString
+        , onBlur $ EditingEntry (entryRec ^. eid) False
+        , onEnter $ EditingEntry (entryRec ^. eid) False
         ]
         []
     ]
 
-viewControls :: Model ->  Visibility -> [ Entry ] -> View Action
+viewControls :: Model ->  Visibility -> [ EntryRecord ] -> View Action
 viewControls model visibility entries =
   footer_ [ class_ "footer"
           , hidden_ (bool "" "hidden" $ null entries)
@@ -289,7 +301,7 @@ viewControlsClear _ entriesCompleted =
     ]
     [ text $ "Clear completed (" <> S.pack (show entriesCompleted) <> ")" ]
 
-viewInput :: Model -> MisoString -> View Action
+viewInput :: Model -> T.Text -> View Action
 viewInput _ task =
   header_ [ class_ "header" ]
     [ h1_ [] [ text "todos" ]
@@ -297,9 +309,9 @@ viewInput _ task =
         [ class_ "new-todo"
         , placeholder_ "What needs to be done?"
         , autofocus_ True
-        , value_ task
+        , value_ $ toMisoString task
         , name_ "newTodo"
-        , onInput UpdateField
+        , onInput $ UpdateField . textFromJSString
         , onEnter Add
         ] []
     ]

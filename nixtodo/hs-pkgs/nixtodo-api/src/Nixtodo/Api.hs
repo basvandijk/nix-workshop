@@ -24,13 +24,15 @@ import Data.Profunctor.Product.TH ( makeAdaptorAndInstance )
 --------------------------------------------------------------------------------
 
 type NixtodoApi =
-    "entries" :> (    CreateEntry
-                 :<|> ReadEntries
-                 :<|> UpdateEntry
-                 :<|> DeleteEntry
-                 )
+       "entries" :> NixtodoRestApi
   :<|> "websocket" :> Raw
   :<|> FrontendApi
+
+type NixtodoRestApi =
+       CreateEntry
+  :<|> ReadEntries
+  :<|> UpdateEntry
+  :<|> DeleteEntry
 
 type CreateEntry =
      ReqBody '[JSON] EntryInfo

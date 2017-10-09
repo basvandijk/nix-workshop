@@ -36,6 +36,10 @@ in {
       #enableTCPIP = true;
       package = pkgs.postgresql100;
       dataDir = "/var/lib/postgresql/${pgPkg.psqlSchema}";
+      extraConfig = ''
+        # Handy for debugging
+        log_statement all
+      '';
     };
     systemd.services."create-roles-nixtodo-db" = {
       description = "Create or update roles for the nixtodo_db";

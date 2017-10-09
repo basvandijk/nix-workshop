@@ -23,9 +23,9 @@ main = runManaged $ do
     let subCfg :: T.Text -> C.Config
         subCfg sectionName = C.subconfig sectionName cfg
 
-    db <- liftIO $ do
-      c <- Db.parseConfig (subCfg "db")
-      Db.new c
+    db <- do
+      c <- liftIO $ Db.parseConfig (subCfg "db")
+      Db.with c
 
     frontendIndexTemplater <- do
       c <- liftIO $ IndexTemplater.parseConfig $ subCfg "frontendIndexTemplater"

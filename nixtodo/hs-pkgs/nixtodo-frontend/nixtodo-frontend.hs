@@ -11,9 +11,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ExtendedDefaultRules       #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE NumDecimals                #-}
 
 module Main where
 
+import           Control.Concurrent (threadDelay)
 import           Control.Monad
 import           Control.Monad.Writer ( tell )
 import           Control.Monad.Trans.State.Strict
@@ -114,21 +116,23 @@ data Action
 
 main :: IO ()
 main = do
-    window <- currentWindowUnchecked
-    location <- getLocation window
-    host :: MisoString <- getHostname location
-    port :: MisoString <- getPort location
-
+    websocketUrl <- getWebsocketUrl
     startApp App
       { initialAction = Initialize
-      , model         = emptyModel
-      , view          = viewModel
-      , update        = fromTransition . updateModel
-      , events        = defaultEvents
-      , subs          = [websocketSub (url host port) (Protocols []) WebSocketEvent]
+      , model  = emptyModel
+      , view   = viewModel
+      , update = fromTransition . updateModel
+      , events = defaultEvents
+      , subs = [websocketSub (URL websocketUrl) (Protocols []) WebSocketEvent]
       }
   where
-    url host port = URL $ "wss://" <> host <> ":" <> port <> "/websocket"
+    getWebsocketUrl :: IO MisoString
+    getWebsocketUrl = do
+      window <- currentWindowUnchecked
+      location <- getLocation window
+      host <- getHostname location
+      port <- getPort location
+      pure $ "wss://" <> host <> ":" <> port <> "/websocket"
 
 updateModel :: Action -> Transition Action Model ()
 updateModel = \case
@@ -137,7 +141,10 @@ updateModel = \case
     Initialize -> scheduleIO $ do
         result <- callServant "" $ readEntries nixtodoApiClient
         case result of
-          Left err -> pure Initialize
+          Left err -> do
+            print err
+            threadDelay 1e6
+            pure Initialize
           Right entries -> pure $ SetEntries entries
 
     SetEntries _entries -> pure ()
@@ -148,7 +155,9 @@ updateModel = \case
               case entryEvent of
                 UpsertEntryEvent entry -> pure () -- TODO !!!
                 DeleteEntryEvent entryId -> pure () -- TODO !!!
-          _ -> pure ()
+          WebSocketClose _closeCode _wasClean _reason -> pure ()
+          WebSocketOpen                               -> pure ()
+          WebSocketError err                          -> pure ()
 
     Add -> do
       oldUid   <- use uid

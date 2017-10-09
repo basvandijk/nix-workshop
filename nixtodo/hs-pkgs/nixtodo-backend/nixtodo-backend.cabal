@@ -12,6 +12,7 @@ cabal-version:       >=1.10
 executable nixtodo-backend
   main-is: nixtodo-backend.hs
   build-depends:       SHA
+                     , async
                      , aeson
                      , base
                      , base16-bytestring
@@ -33,6 +34,7 @@ executable nixtodo-backend
                      , resource-pool
                      , servant
                      , servant-server
+                     , stm
                      , text
                      , tagged
                      , nixtodo-api

@@ -11,6 +11,8 @@ module Nixtodo.Backend.WebServer
     , serve
     ) where
 
+import "base" Control.Monad (forever)
+import qualified "aeson" Data.Aeson as Json (encode)
 import System.FilePath ( addTrailingPathSeparator )
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as C
@@ -109,11 +111,12 @@ serve cfg db frontendIndexTemplater =
         opts = WebSockets.ConnectionOptions $ pure ()
 
         listener :: WebSockets.PendingConnection -> IO ()
-        listener pconn = do
-            conn <- WebSockets.acceptRequest pconn
-
-            -- WebSockets.sendTextData conn $ Json.encode eventGroup
-            pure ()
+        listener pendingConn = do
+            conn <- WebSockets.acceptRequest pendingConn
+            listener <- Db.getEventListener db
+            forever $ do
+              event <- Db.getEvent listener
+              WebSockets.sendTextData conn $ Json.encode event
 
     frontendServer :: Servant.Server FrontendApi
     frontendServer =

@@ -1,4 +1,6 @@
-{-# language OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE Arrows #-}
 
 module Nixtodo.Backend.Db
   ( -- * Configuration
@@ -8,15 +10,25 @@ module Nixtodo.Backend.Db
 
     -- * Initialization
   , Handle
-  , new
+  , with
 
     -- * API
   , createEntry
   , readEntries
   , updateEntry
   , deleteEntry
+
+    -- * Events
+  , EventListener
+  , getEventListener
+  , getEvent
   ) where
 
+import "async" Control.Concurrent.Async (withAsyncWithUnmask)
+import "base" Control.Monad.IO.Class (liftIO)
+import "base" Control.Arrow (returnA)
+import "base" Control.Monad (forever)
+import "base" Data.Foldable (for_)
 import Control.Lens
 import Control.Monad (void)
 import qualified Data.Configurator as C
@@ -31,6 +43,12 @@ import Data.Map (Map)
 import qualified Data.Map.Strict as M (fromList)
 import Nixtodo.Backend.Db.Types
 import Opaleye
+import "stm" Control.Concurrent.STM.TChan
+import "stm" Control.Monad.STM (atomically)
+import "managed" Control.Monad.Managed.Safe ( Managed, managed )
+import qualified "bytestring" Data.ByteString.Char8 as BC8
+import "postgresql-simple" Database.PostgreSQL.Simple.Notification
+
 
 --------------------------------------------------------------------------------
 -- Configuration
@@ -83,20 +101,62 @@ parseConfig cfg =
 -- Initialization
 --------------------------------------------------------------------------------
 
-newtype Handle = Handle { hndlPgConnPool :: Pool Pg.Connection }
+data Handle =
+     Handle
+     { hndlPgConnPool :: !(Pool Pg.Connection)
+     , hndlEventChan  :: !(TChan EntryEvent)
+     }
 
-new :: Config -> IO Handle
-new config = do
-    pgConnPool <- Pool.createPool
+with :: Config -> Managed Handle
+with config = do
+    pgConnPool <- liftIO $ Pool.createPool
         (Pg.connect $ cfgConnectInfo config)
         Pg.close
         (poolCfgNumStripes poolConfig)
         (fromIntegral $ poolCfgIdleTime poolConfig)
         (poolCfgMaxResources poolConfig)
 
-    pure Handle{hndlPgConnPool = pgConnPool}
+    eventChan <- liftIO $ newBroadcastTChanIO
+
+    let hndl = Handle
+               { hndlPgConnPool = pgConnPool
+               , hndlEventChan  = eventChan
+               }
+
+    conn <- managed $ withResource pgConnPool
+    _async <- managed $ withAsyncWithUnmask $ \unmask ->
+                          unmask $ forwardEvents conn hndl
+    pure hndl
   where
     poolConfig = cfgPoolConfig config
+
+forwardEvents :: Pg.Connection -> Handle -> IO ()
+forwardEvents conn hndl = forever $ do
+    not <- getNotification conn
+    print $ notificationData not
+    for_ (parseNotificationData $ notificationData not) $ \(operation, eid) ->
+      case operation of
+        DELETE -> atomically $ writeTChan eventChan $ DeleteEntryEvent eid
+        UPSERT -> do
+          mbEntry <- lookupEntry hndl eid
+          for_ mbEntry $ \entry ->
+            atomically $ writeTChan eventChan $ UpsertEntryEvent entry
+  where
+    eventChan = hndlEventChan hndl
+
+data Operation = UPSERT | DELETE
+
+parseNotificationData :: BC8.ByteString -> Maybe (Operation, EntryId)
+parseNotificationData bs = do
+    let (operationBs, restBs) = BC8.break (== ':') bs
+    operation <- case operationBs of
+                   "INSERT" -> Just UPSERT
+                   "UPDATE" -> Just UPSERT
+                   "DELETE" -> Just DELETE
+                   _        -> Nothing
+    (':', eidBs) <- BC8.uncons restBs
+    (eid, "") <- BC8.readInt eidBs
+    pure (operation, eid)
 
 
 --------------------------------------------------------------------------------
@@ -124,6 +184,17 @@ readEntries hndl =
     withResource (hndlPgConnPool hndl) $ \conn -> runQuery conn $
       queryTable entriesTable
 
+lookupEntry :: Handle -> EntryId -> IO (Maybe Entry)
+lookupEntry hndl eid = do
+    entries <- withResource (hndlPgConnPool hndl) $ \conn -> runQuery conn $ proc () -> do
+      entry <- queryTable entriesTable -< ()
+      restrict -< entry ^. entryId .=== constant eid
+      returnA -< entry
+    case entries of
+      [entry] -> pure $ Just entry
+      []      -> pure Nothing
+      _       -> error "Multiple rows returned!"
+
 updateEntry :: Handle -> EntryId -> EntryInfo -> IO ()
 updateEntry hndl eid entryInf =
     void $ withResource (hndlPgConnPool hndl) $ \conn ->
@@ -139,3 +210,17 @@ deleteEntry hndl eid =
     void $ withResource (hndlPgConnPool hndl) $ \conn ->
       runDelete conn entriesTable $ \entry ->
         entry ^. entryId .=== constant eid
+
+
+--------------------------------------------------------------------------------
+-- Events
+--------------------------------------------------------------------------------
+
+newtype EventListener = EventListener (TChan EntryEvent)
+
+getEventListener :: Handle -> IO EventListener
+getEventListener hndl = fmap EventListener $ atomically $
+                          dupTChan $ hndlEventChan hndl
+
+getEvent :: EventListener -> IO EntryEvent
+getEvent (EventListener eventChan) = atomically $ readTChan eventChan

@@ -85,8 +85,7 @@ parseConfig cfg =
 
 newtype Handle = Handle { hndlPgConnPool :: Pool Pg.Connection }
 
-new :: Config
-    -> IO Handle
+new :: Config -> IO Handle
 new config = do
     pgConnPool <- Pool.createPool
         (Pg.connect $ cfgConnectInfo config)

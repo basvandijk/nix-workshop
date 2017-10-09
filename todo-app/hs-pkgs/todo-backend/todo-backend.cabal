@@ -39,6 +39,8 @@ executable todo-backend
                      , unix
                      , wai-extra
                      , wai-app-static
+                     , wai-websockets
+                     , websockets
                      , wai
                      , warp
                      , zlib

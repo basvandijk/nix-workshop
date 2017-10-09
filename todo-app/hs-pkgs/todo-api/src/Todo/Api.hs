@@ -29,6 +29,7 @@ type TodoApi =
                  :<|> UpdateEntry
                  :<|> DeleteEntry
                  )
+  :<|> "websocket" :> Raw
   :<|> FrontendApi
 
 type CreateEntry =
@@ -63,6 +64,11 @@ type GetIndex  = Raw
 -- Types
 --------------------------------------------------------------------------------
 
+data EntryEvent =
+      UpsertEntryEvent Entry
+    | DeleteEntryEvent EntryId
+      deriving (Show, Generic, Eq)
+
 type EntryId = Int
 
 type Entry = Entry' EntryId EntryInfo
@@ -80,6 +86,10 @@ data EntryInfo' description completed =
      { _entryInfDescription :: !description
      , _entryInfCompleted   :: !completed
      } deriving (Show, Generic, Eq)
+
+instance ToJSON EntryEvent
+
+instance FromJSON EntryEvent
 
 instance ToJSON Entry where
     toJSON = genericToJSON $ optionsDelPrefix "_entry"

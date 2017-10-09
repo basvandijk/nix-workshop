@@ -1,5 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# language TypeApplications  #-}
+{-# language PackageImports  #-}
 
 module Todo.Backend.WebServer
     ( -- * Configuration
@@ -28,6 +29,10 @@ import Network.Wai.Application.Static
     ( StaticSettings, ssMaxAge, defaultFileServerSettings, staticApp )
 import WaiAppStatic.Types ( MaxAge(MaxAgeForever) )
 import Data.Tagged (Tagged(..))
+import qualified "wai-websockets" Network.Wai.Handler.WebSockets as WebSockets
+import qualified "websockets" Network.WebSockets.Connection as WebSockets
+import qualified "wai" Network.Wai as Wai
+import qualified "http-types" Network.HTTP.Types.Status as Http
 
 
 --------------------------------------------------------------------------------
@@ -70,7 +75,8 @@ serve cfg db frontendIndexTemplater =
           :<|> readEntriesServer
           :<|> updateEntryServer
           :<|> deleteEntryServer
-        ) :<|> frontendServer
+        ) :<|> websocketServer
+          :<|> frontendServer
 
     createEntryServer :: Servant.Server CreateEntry
     createEntryServer entryInfo = do
@@ -89,6 +95,25 @@ serve cfg db frontendIndexTemplater =
     deleteEntryServer entryId = do
       liftIO $ Db.deleteEntry db entryId
       pure NoContent
+
+    websocketServer :: Servant.Server Raw
+    websocketServer =
+        Tagged $ WebSockets.websocketsOr opts listener nonSocket
+      where
+        nonSocket _req respond =
+            respond $ Wai.responseLBS
+                Http.notAcceptable406
+                [("Content-Type", "text/plain")]
+                "This is a websocket route. Connect to it using websockets."
+
+        opts = WebSockets.ConnectionOptions $ pure ()
+
+        listener :: WebSockets.PendingConnection -> IO ()
+        listener pconn = do
+            conn <- WebSockets.acceptRequest pconn
+
+            -- WebSockets.sendTextData conn $ Json.encode eventGroup
+            pure ()
 
     frontendServer :: Servant.Server FrontendApi
     frontendServer =

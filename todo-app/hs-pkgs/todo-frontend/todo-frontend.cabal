@@ -22,4 +22,6 @@ executable todo-frontend
                      , transformers
                      , todo-api-client
                      , todo-api
+                     , servant-client-ghcjs
+                     , ghcjs-dom-jsffi
   default-language:    Haskell2010

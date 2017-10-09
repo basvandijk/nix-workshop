@@ -29,8 +29,16 @@ import           Miso
 import           Miso.String  (MisoString, toMisoString)
 import qualified Miso.String  as S
 import           Todo.Api
+import           Todo.Api.Client
 import qualified Data.Text as T
 import           Data.JSString.Text (textFromJSString)
+import qualified Data.JSString as JSS
+import           Servant.Client.Ghcjs
+import qualified JavaScript.Web.Location
+import           GHCJS.DOM ( currentWindowUnchecked )
+import           GHCJS.DOM.Window ( getLocation )
+import           GHCJS.DOM.Location ( getHostname, getPort )
+
 
 data Model = Model
   { _entries    :: ![EntryRecord]
@@ -91,6 +99,9 @@ newEntry desc id' = EntryRecord
 
 data Action
   = NoOp
+  | Initialize
+  | SetEntries ![Entry]
+  | WebSocketEvent !(Miso.WebSocket EntryEvent) -- TODO
   | UpdateField !T.Text
   | EditingEntry !Int !Bool
   | UpdateEntry !Int !T.Text
@@ -100,20 +111,44 @@ data Action
   | Check !Int !Bool
   | CheckAll !Bool
   | ChangeVisibility !Visibility
-   deriving Show
 
 main :: IO ()
-main = startApp App{ initialAction = NoOp
-                   , model         = emptyModel
-                   , view          = viewModel
-                   , update        = fromTransition . updateModel
-                   , events        = defaultEvents
-                   , subs          = []
-                   }
+main = do
+    window <- currentWindowUnchecked
+    location <- getLocation window
+    host :: MisoString <- getHostname location
+    port :: MisoString <- getPort location
+
+    startApp App
+      { initialAction = Initialize
+      , model         = emptyModel
+      , view          = viewModel
+      , update        = fromTransition . updateModel
+      , events        = defaultEvents
+      , subs          = [websocketSub (url host port) (Protocols []) WebSocketEvent]
+      }
+  where
+    url host port = URL $ "wss://" <> host <> ":" <> port <> "/websocket"
 
 updateModel :: Action -> Transition Action Model ()
 updateModel = \case
     NoOp -> pure ()
+
+    Initialize -> scheduleIO $ do
+        result <- callServant "" $ readEntries todoApiClient
+        case result of
+          Left err -> pure Initialize
+          Right entries -> pure $ SetEntries entries
+
+    SetEntries _entries -> pure ()
+
+    WebSocketEvent webSocketAction ->
+        case webSocketAction of
+          WebSocketMessage entryEvent ->
+              case entryEvent of
+                UpsertEntryEvent entry -> pure () -- TODO !!!
+                DeleteEntryEvent entryId -> pure () -- TODO !!!
+          _ -> pure ()
 
     Add -> do
       oldUid   <- use uid
@@ -122,8 +157,16 @@ updateModel = \case
       uid   .= oldUid + 1
       field .= mempty
 
-      unless (T.null oldField) $
+      unless (T.null oldField) $ do
         entries %= (<> [newEntry oldField oldUid])
+
+        scheduleIO $ do
+          _result <- callServant "" $ createEntry todoApiClient
+            EntryInfo
+            { _entryInfDescription = oldField
+            , _entryInfCompleted   = False
+            }
+          pure NoOp
 
     UpdateField str -> field .= str
 
@@ -134,12 +177,24 @@ updateModel = \case
                    )
       scheduleIO $ NoOp <$ focus ("todo-" <> S.pack (show id'))
 
-    UpdateEntry id' desc ->
+    UpdateEntry id' desc -> do
       entries %= filterMap ((== id') . L.view eid)
                    (description .~ desc)
 
-    Delete id' ->
+      scheduleIO $ do
+        _result <- callServant "" $ updateEntry todoApiClient id'
+          EntryInfo
+          { _entryInfDescription = desc
+          , _entryInfCompleted   = False -- TODO !!!
+          }
+        pure NoOp
+
+    Delete id' -> do
       entries %= filter ((/= id') . L.view eid)
+
+      scheduleIO $ do
+        _result <- callServant "" $ deleteEntry todoApiClient id'
+        pure NoOp
 
     DeleteComplete ->
       entries %= filter (not . L.view completed)
@@ -147,7 +202,13 @@ updateModel = \case
     Check id' isCompleted -> do
       entries %= filterMap ((== id') . L.view eid)
                    (completed .~ isCompleted)
-      scheduleIO $ NoOp <$ putStrLn "clicked check"
+      scheduleIO $ do
+        _result <- callServant "" $ updateEntry todoApiClient id'
+          EntryInfo
+          { _entryInfDescription = "" -- TODO !!!
+          , _entryInfCompleted   = isCompleted
+          }
+        pure NoOp
 
     CheckAll isCompleted ->
       entries %= filterMap (const True)
@@ -342,3 +403,36 @@ infoFooter =
         , a_ [ href_ "http://todomvc.com" ] [ text "TodoMVC" ]
         ]
     ]
+
+--------------------------------------------------------------------------------
+
+-- | Performs blocking AJAX request on the location of the browser window
+callServant
+    :: String
+       -- ^ Path prefixed to HTTP requests.
+    -> ClientM a
+    -> IO (Either ServantError a)
+callServant path m = do
+    curLoc <- JavaScript.Web.Location.getWindowLocation
+
+    jsStr_protocol <- JavaScript.Web.Location.getProtocol curLoc
+    jsStr_port     <- JavaScript.Web.Location.getPort     curLoc
+    jsStr_hostname <- JavaScript.Web.Location.getHostname curLoc
+
+    let protocol
+          | jsStr_protocol == "https:" = Https
+          | otherwise                  = Http
+
+        portStr :: String
+        portStr = JSS.unpack jsStr_port
+
+        port :: Int
+        port | null portStr = case protocol of
+                 Http  ->  80
+                 Https -> 443
+             | otherwise = read portStr
+
+        hostname :: String
+        hostname = JSS.unpack jsStr_hostname
+
+    runClientM m (ClientEnv (BaseUrl protocol hostname port path))

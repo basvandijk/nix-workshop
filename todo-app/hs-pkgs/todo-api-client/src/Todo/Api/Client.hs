@@ -28,4 +28,5 @@ todoApiClient = TodoApiClient{..}
       :<|> readEntries
       :<|> updateEntry
       :<|> deleteEntry
-     ):<|> _frontendApi = Proxy @TodoApi `clientIn` Proxy @m
+     ):<|> _websocketApi
+      :<|> _frontendApi = Proxy @TodoApi `clientIn` Proxy @m

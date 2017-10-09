@@ -6,7 +6,7 @@ set -eu -o pipefail
 cd "$(dirname "$0")"
 
 # Build the docker image.
-docker build -t hex2017:nix .
+docker build -t hex2017 .
 
 # Enter the virtual environment and map this repository
 # into the container at ~root/src.
@@ -19,5 +19,5 @@ exec docker run                       \
        --tmpfs /tmp                   \
        -h hex2017                     \
        -v "$PWD/..":/root/src         \
-       hex2017:nix                    \
+       hex2017                        \
        /nix/var/nix/profiles/default/bin/bash -li

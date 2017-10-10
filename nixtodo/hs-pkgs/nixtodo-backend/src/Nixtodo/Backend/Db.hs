@@ -123,25 +123,30 @@ with config = do
                , hndlEventChan  = eventChan
                }
 
-    conn <- managed $ withResource pgConnPool
-    _async <- managed $ withAsyncWithUnmask $ \unmask -> unmask $ do
-                void $ Pg.execute_ conn $ "LISTEN event_channel"
-                forwardEvents conn hndl
+    _async <- managed $ withAsyncWithUnmask $ \unmask ->
+                          unmask $ forwardEvents hndl
+
     pure hndl
   where
     poolConfig = cfgPoolConfig config
 
-forwardEvents :: Pg.Connection -> Handle -> IO ()
-forwardEvents conn hndl = forever $ do
-    not <- getNotification conn
-    print $ notificationData not
-    for_ (parseNotificationData $ notificationData not) $ \(operation, eid) ->
-      case operation of
-        DELETE -> atomically $ writeTChan eventChan $ DeleteEntryEvent eid
-        UPSERT -> do
-          mbEntry <- lookupEntry hndl eid
-          for_ mbEntry $ \entry ->
-            atomically $ writeTChan eventChan $ UpsertEntryEvent entry
+withConnection :: Handle -> (Pg.Connection -> IO a) -> IO a
+withConnection hndl = withResource (hndlPgConnPool hndl)
+
+-- TODO: When an exception occurs, log it and restart the thread!
+forwardEvents :: Handle -> IO ()
+forwardEvents hndl = withConnection hndl $ \conn -> do
+    void $ Pg.execute_ conn "LISTEN event_channel"
+    forever $ do
+      not <- getNotification conn
+      print $ notificationData not
+      for_ (parseNotificationData $ notificationData not) $ \(operation, eid) ->
+        case operation of
+          DELETE -> atomically $ writeTChan eventChan $ DeleteEntryEvent eid
+          UPSERT -> do
+            mbEntry <- lookupEntry hndl eid
+            for_ mbEntry $ \entry ->
+              atomically $ writeTChan eventChan $ UpsertEntryEvent entry
   where
     eventChan = hndlEventChan hndl
 
@@ -166,7 +171,7 @@ parseNotificationData bs = do
 
 createEntry :: Handle -> EntryInfo -> IO Entry
 createEntry hndl entryInf = do
-    entries <- withResource (hndlPgConnPool hndl) $ \conn ->
+    entries <- withConnection hndl $ \conn ->
       runInsertReturning conn entriesTable
         Entry{ _entryId    = Nothing
              , _entryEntry =
@@ -182,12 +187,12 @@ createEntry hndl entryInf = do
 
 readEntries :: Handle -> IO [Entry]
 readEntries hndl =
-    withResource (hndlPgConnPool hndl) $ \conn -> runQuery conn $
+    withConnection hndl $ \conn -> runQuery conn $
       queryTable entriesTable
 
 lookupEntry :: Handle -> EntryId -> IO (Maybe Entry)
 lookupEntry hndl eid = do
-    entries <- withResource (hndlPgConnPool hndl) $ \conn -> runQuery conn $ proc () -> do
+    entries <- withConnection hndl $ \conn -> runQuery conn $ proc () -> do
       entry <- queryTable entriesTable -< ()
       restrict -< entry ^. entryId .=== constant eid
       returnA -< entry
@@ -198,7 +203,7 @@ lookupEntry hndl eid = do
 
 updateEntry :: Handle -> EntryId -> EntryInfo -> IO ()
 updateEntry hndl eid entryInf =
-    void $ withResource (hndlPgConnPool hndl) $ \conn ->
+    void $ withConnection hndl $ \conn ->
       runUpdate conn entriesTable
       (\_entry -> Entry
         { _entryId    = Nothing -- Just $ constant eid
@@ -208,7 +213,7 @@ updateEntry hndl eid entryInf =
 
 deleteEntry :: Handle -> EntryId -> IO ()
 deleteEntry hndl eid =
-    void $ withResource (hndlPgConnPool hndl) $ \conn ->
+    void $ withConnection hndl $ \conn ->
       runDelete conn entriesTable $ \entry ->
         entry ^. entryId .=== constant eid
 

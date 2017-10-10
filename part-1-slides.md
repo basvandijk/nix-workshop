@@ -8,11 +8,11 @@
 
 - Install Nix:
 
-    - https://nixos.org/nix/download.html
+    - Run `./docker-run.sh` in checkout of https://github.com/basvandijk/nix-workshop.
 
     - `curl https://nixos.org/nix/install | sh`
 
-    - `docker run -it nixos/nix sh -`
+    - https://nixos.org/nix/download.html
 
 - Install NixOS:
 

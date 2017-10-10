@@ -1,6 +1,7 @@
 #! /bin/sh
 
 set -e
+cd "$(dirname "$0")"
 
 # Get the source code of the desired Haskell package.
 cabal update

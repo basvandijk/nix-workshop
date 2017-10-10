@@ -4,6 +4,7 @@ set -eu
 cd "$(dirname "$0")"
 
 # Get the source code of the desired Haskell package.
+rm -rf mustache-2.2.3
 cabal get mustache-2.2.3
 cd mustache-2.2.3
 

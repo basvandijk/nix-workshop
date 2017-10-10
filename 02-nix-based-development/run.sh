@@ -4,6 +4,7 @@ set -e
 cd "$(dirname "$0")"
 
 # Get the source code of the desired Haskell package.
+rm -rf nix-derivation-1.0.0
 cabal get nix-derivation-1.0.0
 cd nix-derivation-1.0.0
 

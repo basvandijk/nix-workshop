@@ -5,6 +5,7 @@ cd "$(dirname "$0")"
 
 # Get the source code of the desired Haskell package.
 cabal update
+rm -rf mtl-compat-0.2.1.3
 cabal get mtl-compat-0.2.1.3
 cd mtl-compat-0.2.1.3
 

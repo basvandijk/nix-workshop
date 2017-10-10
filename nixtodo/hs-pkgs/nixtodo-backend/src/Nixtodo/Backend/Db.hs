@@ -124,8 +124,9 @@ with config = do
                }
 
     conn <- managed $ withResource pgConnPool
-    _async <- managed $ withAsyncWithUnmask $ \unmask ->
-                          unmask $ forwardEvents conn hndl
+    _async <- managed $ withAsyncWithUnmask $ \unmask -> unmask $ do
+                void $ Pg.execute_ conn $ "LISTEN event_channel"
+                forwardEvents conn hndl
     pure hndl
   where
     poolConfig = cfgPoolConfig config

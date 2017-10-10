@@ -39,7 +39,7 @@ import           Servant.Client.Ghcjs
 import qualified JavaScript.Web.Location
 import           GHCJS.DOM ( currentWindowUnchecked )
 import           GHCJS.DOM.Window ( getLocation )
-import           GHCJS.DOM.Location ( getHostname, getPort )
+import           GHCJS.DOM.Location ( getProtocol, getHostname, getPort )
 
 
 data Model = Model
@@ -128,11 +128,18 @@ main = do
   where
     getWebsocketUrl :: IO MisoString
     getWebsocketUrl = do
-      window <- currentWindowUnchecked
-      location <- getLocation window
-      host <- getHostname location
-      port <- getPort location
-      pure $ "wss://" <> host <> ":" <> port <> "/websocket"
+        window   <- currentWindowUnchecked
+        location <- getLocation window
+        protocol <- getProtocol location
+        host     <- getHostname location
+        port     <- getPort location
+        let wsProtocol = case protocol of
+              "https:" -> "wss:"
+              "http:"  -> "ws:"
+              _ -> error $ "I don't know how to convert protocol: " <>
+                           JSS.unpack protocol <>
+                           " to a websocket protocol!"
+        pure $ wsProtocol <> "//" <> host <> ":" <> port <> "/websocket"
 
 updateModel :: Action -> Transition Action Model ()
 updateModel = \case

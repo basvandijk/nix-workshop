@@ -25,22 +25,22 @@ in {
 
   networking.firewall.allowPing = true;
 
-  # security = {
-  #   sudo.wheelNeedsPassword = false;
-  #   initialRootPassword = "!";
-  # };
+  security = {
+    sudo.wheelNeedsPassword = false;
+    initialRootPassword = "!";
+  };
 
-  # users = {
-  #   mutableUsers = false;
+  users = {
+    mutableUsers = false;
 
-  #   groups.nixtodo = { name = "nixtodo"; };
+    groups.nixtodo = { name = "nixtodo"; };
 
-  #   users = engineers // {
-  #     "root" = {
-  #        openssh.authorizedKeys.keys =
-  #          concatMap (user : user.openssh.authorizedKeys.keys)
-  #                    (attrValues engineers);
-  #     };
-  #   };
-  # };
+    users = engineers // {
+      "root" = {
+         openssh.authorizedKeys.keys =
+           concatMap (user : user.openssh.authorizedKeys.keys)
+                     (attrValues engineers);
+      };
+    };
+  };
 }

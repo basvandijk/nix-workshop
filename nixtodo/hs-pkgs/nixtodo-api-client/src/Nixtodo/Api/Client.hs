@@ -5,13 +5,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE PackageImports      #-}
 
 module Nixtodo.Api.Client where
 
-import Data.Proxy
-import Nixtodo.Api
-import Servant.Client.Core
-import Servant.API
+import "base"                Data.Proxy
+import "nixtodo-api"         Nixtodo.Api
+import "servant-client-core" Servant.Client.Core
+import "servant"             Servant.API
 
 data NixtodoApiClient m
    = NixtodoApiClient

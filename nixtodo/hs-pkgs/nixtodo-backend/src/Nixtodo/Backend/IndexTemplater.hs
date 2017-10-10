@@ -13,35 +13,34 @@ module Nixtodo.Backend.IndexTemplater
   , getClient
   ) where
 
-import           "base" Control.Concurrent.MVar (MVar, newMVar, withMVar)
-import           "base" Control.Monad.IO.Class (liftIO)
-import           "base" Data.Functor (void)
-import           "base" Control.Monad (when)
-import           "base" Data.Monoid ((<>))
-import           "tagged" Data.Tagged (Tagged(..))
+import qualified "SHA"               Data.Digest.Pure.SHA as SHA
+import           "base"              Control.Concurrent.MVar (MVar, newMVar, withMVar)
+import           "base"              Control.Monad (when)
+import           "base"              Control.Monad.IO.Class (liftIO)
+import           "base"              Data.Functor (void)
+import           "base"              Data.Monoid ((<>))
 import           "base16-bytestring" Data.ByteString.Base16.Lazy as Base16L
-import qualified "bytestring" Data.ByteString.Lazy as BL
-import qualified "bytestring" Data.ByteString.Lazy.Char8 as BLC8
-import qualified "directory" System.Directory as Dir
-import           "filepath" System.FilePath ( (<.>), (</>) )
-import qualified "filepath" System.FilePath as Fp
-import qualified "fsnotify" System.FSNotify as FSNotify
-import qualified "hastache" Text.Hastache as H
-import qualified "hastache" Text.Hastache.Context as H
-import qualified "http-types" Network.HTTP.Types.Status as Http
-import qualified "configurator" Data.Configurator as C
-import qualified "configurator" Data.Configurator.Types as C
-import           "managed" Control.Monad.Managed.Safe ( Managed, managed )
-import qualified "servant-server" Servant
-import qualified "SHA" Data.Digest.Pure.SHA as SHA
-import qualified "text" Data.Text         as T
-import qualified "text" Data.Text.Lazy.IO as TL
-import qualified "unix" System.Posix.Files as Posix
-import qualified "wai" Network.Wai as Wai
-import           "wai-app-static" Network.Wai.Application.Static
-    ( StaticSettings, defaultFileServerSettings, staticApp, ssMaxAge )
-import           "wai-app-static" WaiAppStatic.Types ( MaxAge(MaxAgeForever) )
-import qualified "zlib" Codec.Compression.GZip as Gz
+import qualified "bytestring"        Data.ByteString.Lazy as BL
+import qualified "bytestring"        Data.ByteString.Lazy.Char8 as BLC8
+import qualified "configurator"      Data.Configurator as C
+import qualified "configurator"      Data.Configurator.Types as C
+import qualified "directory"         System.Directory as Dir
+import           "filepath"          System.FilePath ( (<.>), (</>) )
+import qualified "filepath"          System.FilePath as Fp
+import qualified "fsnotify"          System.FSNotify as FSNotify
+import qualified "hastache"          Text.Hastache as H
+import qualified "hastache"          Text.Hastache.Context as H
+import qualified "http-types"        Network.HTTP.Types.Status as Http
+import           "managed"           Control.Monad.Managed.Safe ( Managed, managed )
+import qualified "servant-server"    Servant
+import           "tagged"            Data.Tagged (Tagged(..))
+import qualified "text"              Data.Text         as T
+import qualified "text"              Data.Text.Lazy.IO as TL
+import qualified "unix"              System.Posix.Files as Posix
+import qualified "wai"               Network.Wai as Wai
+import           "wai-app-static"    Network.Wai.Application.Static ( StaticSettings, defaultFileServerSettings, staticApp, ssMaxAge )
+import           "wai-app-static"    WaiAppStatic.Types ( MaxAge(MaxAgeForever) )
+import qualified "zlib"              Codec.Compression.GZip as Gz
 
 data Config
    = Config

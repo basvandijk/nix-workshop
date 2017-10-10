@@ -1,18 +1,19 @@
 {-# language OverloadedStrings #-}
+{-# language PackageImports #-}
 
 module Main (main) where
 
-import Control.Monad.Managed.Safe (runManaged, managed_)
-import Control.Monad.IO.Class (liftIO)
-import qualified Options.Applicative as O
-import qualified Data.Configurator as C
-import qualified Data.Configurator.Types as C
-import Data.Monoid ((<>))
-import Control.Applicative (many)
-import qualified Data.Text as T
-import qualified Nixtodo.Backend.Db as Db
-import qualified Nixtodo.Backend.IndexTemplater as IndexTemplater
-import qualified Nixtodo.Backend.WebServer as WebServer
+import           "base"                 Control.Applicative (many)
+import           "base"                 Control.Monad.IO.Class (liftIO)
+import           "base"                 Data.Monoid ((<>))
+import qualified "configurator"         Data.Configurator as C
+import qualified "configurator"         Data.Configurator.Types as C
+import           "managed"              Control.Monad.Managed.Safe (runManaged, managed_)
+import qualified "optparse-applicative" Options.Applicative as O
+import qualified "text"                 Data.Text as T
+import qualified "this"                 Nixtodo.Backend.Db as Db
+import qualified "this"                 Nixtodo.Backend.IndexTemplater as IndexTemplater
+import qualified "this"                 Nixtodo.Backend.WebServer as WebServer
 
 main :: IO ()
 main = runManaged $ do

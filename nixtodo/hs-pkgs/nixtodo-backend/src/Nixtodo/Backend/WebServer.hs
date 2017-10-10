@@ -11,30 +11,29 @@ module Nixtodo.Backend.WebServer
     , serve
     ) where
 
-import "base" Control.Monad (forever)
-import qualified "aeson" Data.Aeson as Json (encode)
-import System.FilePath ( addTrailingPathSeparator )
-import qualified Data.Configurator as C
-import qualified Data.Configurator.Types as C
-import Data.String (fromString)
-import qualified Network.Wai.Handler.Warp as Warp
-import Network.Wai.Middleware.Gzip ( gzip, gzipFiles, GzipFiles(..) )
-import qualified Nixtodo.Backend.Db as Db
-import qualified Nixtodo.Backend.IndexTemplater as IndexTemplater
-import Nixtodo.Api
-import qualified Servant
-import Servant.API
-import Data.Proxy (Proxy(Proxy))
-import Data.Default (def)
-import Control.Monad.IO.Class (liftIO)
-import Network.Wai.Application.Static
-    ( StaticSettings, ssMaxAge, defaultFileServerSettings, staticApp )
-import WaiAppStatic.Types ( MaxAge(MaxAgeForever) )
-import Data.Tagged (Tagged(..))
+import qualified "aeson"          Data.Aeson as Json (encode)
+import           "base"           Control.Monad (forever)
+import           "base"           Control.Monad.IO.Class (liftIO)
+import           "base"           Data.Proxy (Proxy(Proxy))
+import           "base"           Data.String (fromString)
+import qualified "configurator"   Data.Configurator as C
+import qualified "configurator"   Data.Configurator.Types as C
+import           "data-default"   Data.Default (def)
+import           "filepath"       System.FilePath ( addTrailingPathSeparator )
+import qualified "http-types"     Network.HTTP.Types.Status as Http
+import           "nixtodo-api"    Nixtodo.Api
+import           "servant"        Servant.API
+import qualified "servant-server" Servant
+import           "tagged"         Data.Tagged (Tagged(..))
+import qualified "this"           Nixtodo.Backend.Db as Db
+import qualified "this"           Nixtodo.Backend.IndexTemplater as IndexTemplater
+import qualified "wai"            Network.Wai as Wai
+import           "wai-app-static" Network.Wai.Application.Static ( StaticSettings, ssMaxAge, defaultFileServerSettings, staticApp )
+import           "wai-app-static" WaiAppStatic.Types ( MaxAge(MaxAgeForever) )
+import           "wai-extra"      Network.Wai.Middleware.Gzip ( gzip, gzipFiles, GzipFiles(..) )
 import qualified "wai-websockets" Network.Wai.Handler.WebSockets as WebSockets
-import qualified "websockets" Network.WebSockets.Connection as WebSockets
-import qualified "wai" Network.Wai as Wai
-import qualified "http-types" Network.HTTP.Types.Status as Http
+import qualified "warp"           Network.Wai.Handler.Warp as Warp
+import qualified "websockets"     Network.WebSockets.Connection as WebSockets
 
 
 --------------------------------------------------------------------------------
@@ -102,6 +101,7 @@ serve cfg db frontendIndexTemplater =
     websocketServer =
         Tagged $ WebSockets.websocketsOr opts listener nonSocket
       where
+        nonSocket :: Wai.Application
         nonSocket _req respond =
             respond $ Wai.responseLBS
                 Http.notAcceptable406

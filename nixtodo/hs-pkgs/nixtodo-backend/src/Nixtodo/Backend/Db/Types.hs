@@ -2,14 +2,15 @@
 {-# language OverloadedStrings #-}
 {-# language FlexibleInstances #-}
 {-# language MultiParamTypeClasses #-}
+{-# language PackageImports  #-}
 
 module Nixtodo.Backend.Db.Types where
 
-import Opaleye
-import Data.Profunctor.Product.TH ( makeAdaptorAndInstance )
-import Control.Lens ( makeLenses )
-import qualified Data.Text as T
-import Nixtodo.Api
+import           "opaleye"             Opaleye
+import           "product-profunctors" Data.Profunctor.Product.TH ( makeAdaptorAndInstance )
+import           "lens"                Control.Lens ( makeLenses )
+import qualified "text"                Data.Text as T
+import           "nixtodo-api"         Nixtodo.Api
 
 type DBEntryInfo = EntryInfo'
                      (Column PGText)

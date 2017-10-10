@@ -11,6 +11,8 @@ cabal-version:       >=1.10
 
 executable nixtodo-frontend
   main-is:             nixtodo-frontend.hs
+  hs-source-dirs:      src
+  other-modules:       Servant.Client.Ghcjs.Extended
   build-depends:       base
                      , containers
                      , miso

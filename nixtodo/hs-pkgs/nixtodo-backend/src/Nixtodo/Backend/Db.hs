@@ -24,30 +24,28 @@ module Nixtodo.Backend.Db
   , getEvent
   ) where
 
-import "async" Control.Concurrent.Async (withAsyncWithUnmask)
-import "base" Control.Monad.IO.Class (liftIO)
-import "base" Control.Arrow (returnA)
-import "base" Control.Monad (forever)
-import "base" Data.Foldable (for_)
-import Control.Lens
-import Control.Monad (void)
-import qualified Data.Configurator as C
-import qualified Data.Configurator.Types as C
-import qualified Database.PostgreSQL.Simple as Pg
-import           Data.Pool (Pool, LocalPool, withResource)
-import qualified Data.Pool as Pool
-import qualified Data.Text    as T
-import qualified Data.Text.IO as T (readFile)
-import Nixtodo.Api
-import Data.Map (Map)
-import qualified Data.Map.Strict as M (fromList)
-import Nixtodo.Backend.Db.Types
-import Opaleye
-import "stm" Control.Concurrent.STM.TChan
-import "stm" Control.Monad.STM (atomically)
-import "managed" Control.Monad.Managed.Safe ( Managed, managed )
-import qualified "bytestring" Data.ByteString.Char8 as BC8
-import "postgresql-simple" Database.PostgreSQL.Simple.Notification
+import           "async"             Control.Concurrent.Async (withAsyncWithUnmask)
+import           "base"              Control.Arrow (returnA)
+import           "base"              Control.Monad (forever)
+import           "base"              Control.Monad.IO.Class (liftIO)
+import           "base"              Control.Monad (void)
+import           "base"              Data.Foldable (for_)
+import qualified "bytestring"        Data.ByteString.Char8 as BC8
+import qualified "configurator"      Data.Configurator as C
+import qualified "configurator"      Data.Configurator.Types as C
+import           "lens"              Control.Lens
+import           "managed"           Control.Monad.Managed.Safe ( Managed, managed )
+import           "nixtodo-api"       Nixtodo.Api
+import           "opaleye"           Opaleye
+import qualified "postgresql-simple" Database.PostgreSQL.Simple as Pg
+import           "postgresql-simple" Database.PostgreSQL.Simple.Notification
+import qualified "resource-pool"     Data.Pool as Pool
+import           "resource-pool"     Data.Pool (Pool, LocalPool, withResource)
+import           "stm"               Control.Concurrent.STM.TChan
+import           "stm"               Control.Monad.STM (atomically)
+import qualified "text"              Data.Text    as T
+import qualified "text"              Data.Text.IO as T (readFile)
+import           "this"              Nixtodo.Backend.Db.Types
 
 
 --------------------------------------------------------------------------------
@@ -139,7 +137,10 @@ forwardEvents hndl = withConnection hndl $ \conn -> do
     void $ Pg.execute_ conn "LISTEN event_channel"
     forever $ do
       not <- getNotification conn
+
+      -- For debugging
       print $ notificationData not
+
       for_ (parseNotificationData $ notificationData not) $ \(operation, eid) ->
         case operation of
           DELETE -> atomically $ writeTChan eventChan $ DeleteEntryEvent eid

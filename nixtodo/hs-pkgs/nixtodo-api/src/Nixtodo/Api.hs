@@ -5,19 +5,19 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PackageImports #-}
 
 module Nixtodo.Api where
 
-import Servant.API
-import Control.Lens (makeLenses)
-import qualified Data.Text as T
-import Data.Map (Map)
-import Data.List (stripPrefix)
-import Data.Char (isUpper, toLower)
-import Data.Aeson (ToJSON(..), FromJSON(..), genericToJSON, genericParseJSON)
-import Data.Aeson.Types (Options, defaultOptions, fieldLabelModifier)
-import GHC.Generics (Generic)
-import Data.Profunctor.Product.TH ( makeAdaptorAndInstance )
+import           "servant"             Servant.API
+import           "lens"                Control.Lens (makeLenses)
+import qualified "text"                Data.Text as T
+import           "base"                Data.List (stripPrefix)
+import           "base"                Data.Char (isUpper, toLower)
+import           "aeson"               Data.Aeson (ToJSON(..), FromJSON(..), genericToJSON, genericParseJSON)
+import           "aeson"               Data.Aeson.Types (Options, defaultOptions, fieldLabelModifier)
+import           "base"                GHC.Generics (Generic)
+import           "product-profunctors" Data.Profunctor.Product.TH ( makeAdaptorAndInstance )
 
 --------------------------------------------------------------------------------
 -- Endpoints

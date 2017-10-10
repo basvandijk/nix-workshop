@@ -38,12 +38,12 @@ secrets/dhparams.pem:
 .PHONY: containerized-nixtodo-net.create
 containerized-nixtodo-net.create:
 	nixops create -d containerized-nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net.nix>' '<nixtodo/modules/nixtodo-net-containerized.nix>'
+	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/containerized.nix>'
 
 .PHONY: containerized-nixtodo-net.modify
 containerized-nixtodo-net.modify:
 	nixops modify -d containerized-nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net.nix>' '<nixtodo/modules/nixtodo-net-containeried.nix>'
+	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/containerized.nix>'
 
 .PHONY: containerized-nixtodo-net.info
 containerized-nixtodo-net.info:
@@ -85,12 +85,12 @@ containerized-backend.destroy:
 .PHONY: nixtodo-net.create
 nixtodo-net.create:
 	nixops create -s secrets/state.nixops -d nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net.nix>' '<nixtodo/modules/nixtodo-net-aws.nix>'
+	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/aws.nix>'
 
 .PHONY: nixtodo-net.modify
 nixtodo-net.modify:
 	nixops modify -s secrets/state.nixops -d nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net.nix>' '<nixtodo/modules/nixtodo-net-aws.nix>'
+	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/aws.nix>'
 
 .PHONY: nixtodo-net.info
 nixtodo-net.info:

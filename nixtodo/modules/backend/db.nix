@@ -1,3 +1,10 @@
+# This module configures the nixtodo database.
+#
+# * It enables and configures the `postgresql` service.
+#
+# * It installs a oneshot service for upserting the `nixtodo` database
+# * role.
+
 { config, lib, pkgs, ... } :
 
 with lib;
@@ -33,8 +40,10 @@ in {
   config = mkIf config.services.nixtodo.db.enable {
     services.postgresql = {
       enable = true;
-      #enableTCPIP = true;
+
+      # PostgreSQL 10.0 got released last week. Lets use it!
       package = pkgs.postgresql100;
+
       dataDir = "/var/lib/postgresql/${pgPkg.psqlSchema}";
       extraConfig = ''
         # Handy for debugging

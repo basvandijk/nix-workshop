@@ -1,3 +1,12 @@
+# This module configures a complete nixtodo backend machine.
+#
+# * It enables the nixtodo database.
+#
+# * It enables the nixtodo backend service.
+#
+# * It enables a nginx reverse proxy server for handling TLS
+# * termination.
+
 { config, lib, pkgs, ... }:
 
 with lib;

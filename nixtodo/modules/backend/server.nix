@@ -1,3 +1,16 @@
+# This module configures the nixtodo backend server.
+#
+# * It defines the `nixtodo-backend.conf` configuration file.
+#
+# * It installs a `nixtodo-backend` user account and group which will
+# * be running the backend.
+#
+# * It installs a systemd service for running the backend.
+#
+# * It configures the systemd service to first run the
+#   `migrate-nixtodo-db` script, which migrates the database to the
+#   desired state, before running the backend.
+
 { config, pkgs, lib, ... }:
 
 with lib;
@@ -38,7 +51,6 @@ let
         host = "127.0.0.1"
         port = "${toString cfg.web-server.port}"
       }
-
     '';
   };
 
@@ -106,7 +118,9 @@ in {
         Group = group;
         WorkingDirectory = stateDir;
         ExecStartPre = migrateDb;
-        ExecStart = "${pkgs.haskellPackages.nixtodo-backend}/bin/nixtodo-backend --config=${nixtodoBackendConf}";
+        ExecStart =
+          "${pkgs.haskellPackages.nixtodo-backend}/bin/nixtodo-backend" +
+          " --config=${nixtodoBackendConf}";
         Restart = "always";
       };
     };

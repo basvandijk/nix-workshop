@@ -1,4 +1,23 @@
+################################################################################
+#
+# This Makefile is our entry point into the nixtodo project. We use it to:
+#
+# * get into development environments for working on our Haskell packages,
+#
+# * provisioning and deploying containers on our workstation for testing the
+#   system,
+#
+# * provisioning and deploying EC2 instances, elastic IPs, key-pairs, security
+#   groups and other AWS resources to run our production system.
+#
+# With this Makefile you almost never have to type in actual nix commands for
+# day-to-day develoment and operational work.
+#
+################################################################################
 
+# Some of our Nix expressions refer to <nixpkgs> and <nixtodo>. In order for
+# them to find these directories we have to put them in the NIX_PATH environment
+# variable.
 export NIX_PATH:=nixpkgs=$(shell nix-build --no-out-link ./nixpkgs.nix):nixtodo=$(shell pwd)
 
 help:
@@ -9,19 +28,44 @@ help:
 # Development
 ################################################################################
 
+# The following are some handy targets for building our Haskell packages and
+# getting into shells which are setup with all the dependencies needed to work
+# on a package.
+
+.PHONY: nixtodo-frontend.build
 nixtodo-frontend.build:
 	nix-build -A haskell.packages.ghcjsHEAD.nixtodo-frontend
 
+.PHONY: nixtodo-frontend.shell
 nixtodo-frontend.shell:
 	cd hs-pkgs/nixtodo-frontend && \
 	nix-shell --command 'cabal configure; return'
 
+.PHONY: nixtodo-api.build.ghcjs
+nixtodo-api.build.ghcjs:
+	nix-build -A haskell.packages.ghcjsHEAD.nixtodo-api
+
+.PHONY: nixtodo-api.build.ghc
+nixtodo-api.build.ghc:
+	nix-build -A haskellPackages.nixtodo-api
+
+.PHONY: nixtodo-api.shell
 nixtodo-api.shell:
 	cd hs-pkgs/nixtodo-api && \
 	nix-shell --command 'cabal configure; return'
 
+.PHONY: nixtodo-api-client.shell
 nixtodo-api-client.shell:
 	cd hs-pkgs/nixtodo-api-client && \
+	nix-shell --command 'cabal configure; return'
+
+.PHONY: nixtodo-backend.build
+nixtodo-backend.build:
+	nix-build -A haskellPackages.nixtodo-backend
+
+.PHONY: nixtodo-backend.shell
+nixtodo-backend.shell:
+	cd hs-pkgs/nixtodo-backend && \
 	nix-shell --command 'cabal configure; return'
 
 secrets/postgresql-nixtodo-role-password:
@@ -35,15 +79,25 @@ secrets/dhparams.pem:
 # Deploying to containers for testing
 ################################################################################
 
+# For testing our complete nixtodo system we can take our nixops network
+# specification (<nixtodo/modules/nixtodo-net>) and deploy it to containers on
+# our workstation. These containers can then be managed by the `nixos-container`
+# command.
+#
+# The following targets can be used to create this containerized network and
+# deploy it.
+
 .PHONY: containerized-nixtodo-net.create
 containerized-nixtodo-net.create:
 	nixops create -d containerized-nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/containerized.nix>'
+	  '<nixtodo/modules/nixtodo-net>' \
+	  '<nixtodo/modules/nixtodo-net/containerized.nix>'
 
 .PHONY: containerized-nixtodo-net.modify
 containerized-nixtodo-net.modify:
 	nixops modify -d containerized-nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/containerized.nix>'
+	  '<nixtodo/modules/nixtodo-net>' \
+	  '<nixtodo/modules/nixtodo-net/containerized.nix>'
 
 .PHONY: containerized-nixtodo-net.info
 containerized-nixtodo-net.info:
@@ -82,15 +136,22 @@ containerized-backend.destroy:
 # Deploying to production
 ################################################################################
 
+# nixtodo.com is hosted on AWS. The following targets can be used to provision
+# all the needed resources (like EC2 instances, elastic IPs, key pairs and
+# security groups) and bring them in the configuration as specified by
+# <nixtodo/modules/nixtodo-net>.
+
 .PHONY: nixtodo-net.create
 nixtodo-net.create:
 	nixops create -s secrets/state.nixops -d nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/aws.nix>'
+	  '<nixtodo/modules/nixtodo-net>' \
+	  '<nixtodo/modules/nixtodo-net/aws.nix>'
 
 .PHONY: nixtodo-net.modify
 nixtodo-net.modify:
 	nixops modify -s secrets/state.nixops -d nixtodo-net \
-	  '<nixtodo/modules/nixtodo-net>' '<nixtodo/modules/nixtodo-net/aws.nix>'
+	  '<nixtodo/modules/nixtodo-net>' \
+	  '<nixtodo/modules/nixtodo-net/aws.nix>'
 
 .PHONY: nixtodo-net.info
 nixtodo-net.info:

@@ -29,8 +29,9 @@ basic understanding of basic Haskell development with `Cabal`, `cabal-install`,
 or `stack`. All examples used in this workshop live in the Git repository
 <https://github.com/basvandijk/nix-workshop>. We encourage participants to
 clone that repository and to make sure they have access to a working Nix
-installation *before* the event starts. We provide a Docker image for these
-purposes that users can enter by running the
+installation *before* the event starts. We provide a [Docker
+image](https://hub.docker.com/r/psimons/hex2017/) for these purposes that users
+can enter by running the
 [`docker-run.sh`](https://github.com/basvandijk/nix-workshop/blob/master/docker-run.sh)
 script found in the `nix-workshop` repository. Participants who can't or don't
 want to use Docker should please install Nix by other means as explained on the

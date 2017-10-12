@@ -8,5 +8,6 @@
     ./backend
     ./backend/db.nix
     ./backend/server.nix
+    ./hydra.nix
   ];
 }

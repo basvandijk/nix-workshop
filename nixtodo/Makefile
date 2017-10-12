@@ -18,7 +18,7 @@
 # Some of our Nix expressions refer to <nixpkgs> and <nixtodo>. In order for
 # them to find these directories we have to put them in the NIX_PATH environment
 # variable.
-export NIX_PATH:=nixpkgs=$(shell nix-build --no-out-link ./nixpkgs.nix):nixtodo=$(shell pwd)
+export NIX_PATH := nixpkgs=$(shell nix-build --no-out-link ./nixpkgs.nix):nixtodo=$(shell pwd)
 
 help:
 	cat Makefile
@@ -68,11 +68,19 @@ nixtodo-backend.shell:
 	cd hs-pkgs/nixtodo-backend && \
 	nix-shell --command 'cabal configure; return'
 
+MK_SECRET := openssl rand -base64 32
+
+secrets/devops-hydra-password:
+	$(MK_SECRET) > $@
+
 secrets/postgresql-nixtodo-role-password:
-	openssl rand -base64 32 > $@
+	$(MK_SECRET) > $@
 
 secrets/dhparams.pem:
 	openssl dhparam 4096 -out $@
+
+secrets/hydra-github.id_rsa:
+	ssh-keygen -C hydra-github -P "" -f $@
 
 
 ################################################################################

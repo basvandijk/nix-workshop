@@ -28,6 +28,21 @@ in rec {
     };
   };
 
+  support = {resources, ... }: {
+    deployment = {
+      targetEnv = "ec2";
+      ec2 = {
+        inherit region accessKeyId;
+        instanceType = "t2.medium";
+
+        ebsInitialRootDiskSize = 10; # GB
+
+        keyPair     = resources.ec2KeyPairs.todo-list-app-key-pair;
+        elasticIPv4 = resources.elasticIPs.nixtodo-elastic-ip;
+      };
+    };
+  };
+
   resources = {
     ec2KeyPairs.todo-list-app-key-pair =
       { inherit region accessKeyId; };

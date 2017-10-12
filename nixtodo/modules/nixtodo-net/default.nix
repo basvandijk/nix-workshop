@@ -14,4 +14,8 @@
   backend = {
     services.nixtodo.enable = true;
   };
+
+  support = {
+    services.nixtodo.hydra.enable = true;
+  };
 }

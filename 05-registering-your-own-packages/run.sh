@@ -40,4 +40,4 @@ cat <<EOF >~/.config/nixpkgs/config.nix
 EOF
 
 # Install it.
-nix-env -iA cabal-install-git
+nix-env -f "<nixpkgs>" -iA cabal-install-git

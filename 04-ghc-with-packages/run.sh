@@ -40,4 +40,4 @@ cat <<EOF >~/.config/nixpkgs/config.nix
   };
 }
 EOF
-nix-env -iA haskell-env
+nix-env -f "<nixpkgs>" -iA haskell-env

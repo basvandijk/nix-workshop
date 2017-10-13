@@ -22,7 +22,7 @@ libraries into our build processes.
 The second hour looks at Nix as a tool for *Haskell application deployment*:
 we'll use Nix to manage the development, continuous integration, and deployment
 of a non-trivial GHCJS web application with a Haskell back-end and a PostgreSQL
-database.
+database. (See the [nixtodo repo](https://github.com/basvandijk/nixtodo)).
 
 We assume no prior knowledge of Nix, but we do assume that participants have a
 basic understanding of basic Haskell development with `Cabal`, `cabal-install`,

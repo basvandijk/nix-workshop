@@ -1,4 +1,4 @@
-# ~/.nixpkgs/config.nix
+# ~/config/nixpkgs/config.nix
 
 { pkgs }: {
 

@@ -4,7 +4,13 @@ set -eu
 cd "$(dirname "$0")"
 
 # Get the source code of the desired Haskell package.
-test -d cabal || git clone --depth=1 git://github.com/haskell/cabal.git
+test -d cabal || {
+    nix-env -f "<nixpkgs>" -iA git
+    git clone --depth=1 git://github.com/haskell/cabal.git
+}
+
+cd cabal/Cabal && cabal2nix . >default.nix && cd -
+cd cabal/cabal-install && cabal2nix . >default.nix && cd -
 
 # Register the builds in the package set.
 cat <<EOF >~/.config/nixpkgs/config.nix

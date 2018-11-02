@@ -18,4 +18,4 @@ stack init
 stack build
 
 # Build it with a more recent version of GHC.
-nix-shell -p haskell.compiler.ghc821 --run "cabal new-build"
+nix-shell -p haskell.compiler.ghc861 --run "cabal new-build"

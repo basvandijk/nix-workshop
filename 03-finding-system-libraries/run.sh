@@ -4,9 +4,9 @@ set -eu
 cd "$(dirname "$0")"
 
 # Get the source code of the desired Haskell package.
-rm -rf hopenssl-2.2.1
-cabal get hopenssl-2.2.1
-cd hopenssl-2.2.1
+rm -rf hopenssl-2.2.2
+cabal get hopenssl-2.2.2
+cd hopenssl-2.2.2
 
 # Set up development environment.
 cabal2nix --shell . >shell.nix

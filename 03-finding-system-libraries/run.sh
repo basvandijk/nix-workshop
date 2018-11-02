@@ -38,7 +38,12 @@ EOF
 cabal new-build
 
 # Now build it with stack.
-stack init
+# "stack init" currently doesn't work. It detects lts-12.16, but the
+# nixpkgs-unstable channel hasn't updated to ghc-8.4.4 yet. To avoid
+# this issue for the time being, we hard-code an older version.
+echo > stack.yaml "resolver: lts-12.14"
+echo >>stack.yaml "packages:"
+echo >>stack.yaml "  - ."
 echo >>stack.yaml ""
 echo >>stack.yaml "extra-include-dirs: [ $inc/include ]"
 echo >>stack.yaml "extra-lib-dirs:     [ $lib/lib ]"
@@ -48,5 +53,10 @@ rm -rf stack.yaml .stack-work
 echo >>~/.stack/config.yaml ""
 echo >>~/.stack/config.yaml "extra-include-dirs: [ $HOME/.nix-profile/include ]"
 echo >>~/.stack/config.yaml "extra-lib-dirs:     [ $HOME/.nix-profile/lib ]"
-stack init
+# "stack init" currently doesn't work. It detects lts-12.16, but the
+# nixpkgs-unstable channel hasn't updated to ghc-8.4.4 yet. To avoid
+# this issue for the time being, we hard-code an older version.
+echo > stack.yaml "resolver: lts-12.14"
+echo >>stack.yaml "packages:"
+echo >>stack.yaml "  - ."
 stack build

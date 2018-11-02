@@ -1,0 +1,12 @@
+# .travis.yml
+
+services:
+  - docker
+
+addons:
+  apt:
+    packages:
+      - docker-ce
+
+script:
+  - ./docker-run.sh bash -e -c 'cd ~/workshop && for n in */run.sh; do echo $n; $n; done'

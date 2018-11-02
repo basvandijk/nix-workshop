@@ -6,7 +6,7 @@
 
     system-libraries-env = self.buildEnv {
       name = "system-libraries-0";
-      paths = [self.openssl_1_1_0];
+      paths = [self.openssl_1_1];
       extraOutputsToInstall = ["out" "dev"];
     };
 

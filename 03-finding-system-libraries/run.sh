@@ -11,20 +11,21 @@ cd hopenssl-2.2.1
 # Set up development environment.
 cabal2nix --shell . >shell.nix
 
-# Cannot configure because of missing OpenSSL library.
-nix-shell --run "cabal configure" || true
+# Configure won't give a working build because of the missing OpenSSL library.
+nix-shell --run "cabal v1-configure"
+cabal v1-build || true
 
 # Check which outputs exist for OpenSSL.
 nix-instantiate --eval "<nixpkgs>" -A openssl.outputs
 inc=$(nix-build --no-out-link "<nixpkgs>" -A openssl.dev)
 lib=$(nix-build --no-out-link "<nixpkgs>" -A openssl.out)
-nix-shell --run "cabal configure --extra-include-dirs=$inc/include --extra-lib-dirs=$lib/lib --enable-test"
+nix-shell --run "cabal v1-configure --extra-include-dirs=$inc/include --extra-lib-dirs=$lib/lib --enable-test"
 
 # Configure a global extra search path.
 echo >>~/.cabal/config "extra-include-dirs: $HOME/.nix-profile/include"
 echo >>~/.cabal/config "extra-lib-dirs:     $HOME/.nix-profile/lib"
 install -D ../nixpkgs-config.nix ~/.config/nixpkgs/config.nix
-nix-env --install --attr system-libraries-env
+nix-env -f "<nixpkgs>" --install --attr system-libraries-env
 
 # Write a cabal.project.local file for cabal new-build.
 cat >cabal.project.local <<EOF

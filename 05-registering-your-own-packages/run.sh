@@ -26,12 +26,7 @@ cat <<EOF >~/.config/nixpkgs/config.nix
         Cabal-git = self.callPackage $PWD/cabal/Cabal {};
 
         cabal-install-git = (self.callPackage $PWD/cabal/cabal-install {}).overrideScope (self: super: {
-
           Cabal = self.Cabal-git;
-
-          # Test suite stanza forces Cabal < 1.25.
-          hackage-security = pkgs.haskell.lib.dontCheck super.hackage-security;
-
         });
 
       };

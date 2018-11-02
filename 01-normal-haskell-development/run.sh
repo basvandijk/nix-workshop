@@ -1,6 +1,6 @@
 #! /bin/sh
 
-set -e
+set -eu
 cd "$(dirname "$0")"
 
 # Get the source code of the desired Haskell package.
